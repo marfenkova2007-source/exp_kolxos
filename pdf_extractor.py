@@ -43,7 +43,6 @@ if __name__ == "__main__":
 
     if pages_data:
         print(f"Успешно извлечено страниц: {len(pages_data)}")
-        # Берем текст только первой страницы [0] и её содержимое [1]
         first_page_text = pages_data[0][1]
         print("-" * 30)
         print(first_page_text[:500])
