@@ -19,7 +19,7 @@ def load_ingredients_dict(file_path: str = "ingredients_list_for_yulia.txt") -> 
         return ""
 
 
-def get_json_from_gemini(prompt: str):
+def get_json_from_gemini(prompt: str, system_instruction: str = None):
     try:
         logger.info("Проверяю доступные модели...")
         available_models = [m.name for m in client.models.list()]
@@ -37,13 +37,14 @@ def get_json_from_gemini(prompt: str):
             return None
 
         logger.info(f"Использую модель: {target_model}")
+        config = {'response_mime_type': 'application/json'}
+        if system_instruction:
+            config['system_instruction'] = system_instruction
 
         response = client.models.generate_content(
             model=target_model,
             contents=prompt,
-            config={
-                'response_mime_type': 'application/json',
-            }
+            config=config
         )
 
         if not response or not response.text:
@@ -54,6 +55,7 @@ def get_json_from_gemini(prompt: str):
     except Exception as e:
         logger.error(f"Ошибка на этапе работы с API: {e}")
         return None
+
 
 def get_product_analytics(pdf_path: str):
     pages_data = extract_text_from_pdf(pdf_path)
@@ -73,7 +75,7 @@ def get_product_analytics(pdf_path: str):
     Роль: Экспертный кулинарный аналитик. Преобразуй меню в JSON.
     ИНСТРУМЕНТАРИЙ (Словарь): {ingredients_vocabulary}
     ВЕРНИ СТРОГО JSON:
-    {{ "cuisine_type": "...", "dishes": [ {{ "dish_name": "...", "ingredients": [ {{ "main_ingredient": "...", "attributes": [] }} ] }} ] }}
+    {{ "cuisine_type": "...", "total_dishes": 0, "dishes": [ {{ "dish_name": "...", "ingredients": [ {{ "main_ingredient": "...", "attributes": [] }} ] }} ] }}
 
     МЕНЮ:
     {full_menu_text}
@@ -81,23 +83,58 @@ def get_product_analytics(pdf_path: str):
     return prompt
 
 
+def generate_tips(anya_data: dict):
+    cuisine = anya_data.get("cuisine_type", "Азербайджанская")
+    total = anya_data.get("total_dishes", 0)
+
+    system_prompt = f"""
+    Роль: Ты — ведущий гастрономический консультант. Твоя специализация — оптимизация фудкоста.
+    Контекст: Мы проанализировали текущее меню ресторана (кухня: {cuisine}, блюд: {total}).
+    Задача: Из предоставленного списка продуктов выбери 10 самых перспективных (5 'economy' и 5 'inspiration').
+    Для каждого заполни поле "reason" (150-200 знаков).
+    - Для economy: как снизить себестоимость текущих блюд (используй novelty_score).
+    - Для inspiration: предложи конкретную идею сезонного блюда (спешл).
+    Ограничение: Верни ответ строго в формате JSON, сохранив структуру. Не добавляй пояснений.
+    """
+
+    user_data_str = json.dumps(anya_data, ensure_ascii=False)
+    return get_json_from_gemini(user_data_str, system_instruction=system_prompt)
+
+
 if __name__ == "__main__":
+    # Переработка меню из пдф в json
     test_pdf = "Меню 1.pdf"
+    print(f"Обрабатываю {test_pdf}...")
     final_prompt = get_product_analytics(test_pdf)
 
     if final_prompt:
         result = get_json_from_gemini(final_prompt)
-
         if result:
-            print("\n" + "=" * 50)
-            print("ПОБЕДА! JSON ПОЛУЧЕН:")
-            print(json.dumps(result, indent=4, ensure_ascii=False))
-            print("=" * 50)
-
-            output_file = "menu_result.json"
-            with open(output_file, "w", encoding="utf-8") as f:
+            print("PDF успешно обработан!")
+            with open("menu_result.json", "w", encoding="utf-8") as f:
                 json.dump(result, f, indent=4, ensure_ascii=False)
 
-            print(f"\n[INFO] Данные успешно сохранены в файл: {output_file}")
-        else:
-            print("Не удалось получить результат от нейронки.")
+    # в Анин список продуктов добавляются причины
+    print("\nПроверяю генерацию советов...")
+    example_anya_json = {
+        "cuisine_type": "Азербайджанская",
+        "total_dishes": 181,
+        "recommendations": [
+            {
+                "product_name": "лисички 0,5 кг.",
+                "novelty_score": 100.0,
+                "recommendation_type": "inspiration",
+                "link": "https://svoe-rodnoe.ru/...",
+                "reason": ""
+            }
+        ]
+    }
+
+    tips = generate_tips(example_anya_json)
+    if tips:
+        print("СОВЕТЫ ПОЛУЧЕНЫ:")
+        print(json.dumps(tips, indent=4, ensure_ascii=False))
+        print("Советы получены успешно!")
+        with open("tips_result.json", "w", encoding="utf-8") as f:
+            json.dump(tips, f, indent=4, ensure_ascii=False)
+        print("[INFO] Советы сохранены в файл: tips_result.json")
