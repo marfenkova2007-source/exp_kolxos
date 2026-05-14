@@ -1,9 +1,13 @@
 import logging
 import json
+import os
+import logging
 from google import genai
+from dotenv import load_dotenv
 from pdf_extractor import extract_text_from_pdf
 
-GOOGLE_API_KEY = "AIzaSyCQmX9xBRMFOdLXcGn6m0fVQRlSG6r2URI"
+load_dotenv()
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 client = genai.Client(api_key=GOOGLE_API_KEY)
 
 logging.basicConfig(level=logging.INFO)
@@ -103,7 +107,7 @@ def generate_tips(anya_data: dict):
 
 if __name__ == "__main__":
     # Переработка меню из пдф в json
-    test_pdf = "Меню 1.pdf"
+    test_pdf = "Меню 2.pdf"
     print(f"Обрабатываю {test_pdf}...")
     final_prompt = get_product_analytics(test_pdf)
 
