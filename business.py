@@ -9,8 +9,8 @@ DEFAULT_CUISINE = 'Авторская'
 
 # Настройки выдачи
 GENERAL_REC_LIMIT = 15
-ECONOMY_LIMIT = 7
-INSPIRATION_LIMIT = 8
+ECONOMY_LIMIT = 25
+INSPIRATION_LIMIT = 25
 BASE_NOVELTY_SCORE = 100.0
 
 # Настройки скоринга 
@@ -39,7 +39,7 @@ def get_general_recommendations(start_month: int, end_month: int, db_path: str =
     }
 
 def get_menu_recommendations(menu_json_path: str, start_month: int, end_month: int, db_path: str = DEFAULT_DB_PATH) -> dict:
-    """Анализирует меню и возвращает 15 продуктов. 7 продуктов для экономии на текущем и 8 продуктов для новых идей"""
+    """Анализирует меню и возвращает 50 продуктов. 25 продуктов для экономии на текущем и 25 продуктов для новых идей"""
     target_months = _get_target_months(start_month, end_month)
     ingredient_counts, total_dishes, cuisine_type = get_menu_stats(menu_json_path)
     
