@@ -11,6 +11,7 @@ export default {
           green: '#8abf9e', 
           yellow: '#f2ac2a', 
           orange: '#f6eee7',
+          darker: '#53443b'  //'#605541'
         }
       }
     },
