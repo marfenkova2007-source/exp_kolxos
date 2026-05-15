@@ -7,13 +7,13 @@ from fastapi import FastAPI, UploadFile, File, BackgroundTasks, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from analytics import (
-    get_product_analytics_prompt,
-    call_gemini_api,
-    generate_expert_tips,
+    get_product_analytics,
+    get_json_from_gemini,
+    generate_tips,
 )
 from business import get_menu_recommendations, get_general_recommendations
 
-UPLOAD_DIR = "temp_uploads"  # папка для временного хранения pdf
+UPLOAD_DIR = "temp_uploads"
 MENU_RESULT_FILE = "menu_result.json"
 MAX_SEASONAL_MONTHS = 3
 SERVER_HOST = "0.0.0.0"
@@ -22,7 +22,6 @@ ERROR_NOT_A_MENU = "NOT_A_MENU"
 
 app = FastAPI(title="Svoe Chef API")
 
-# настройка CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -31,9 +30,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-tasks_db: Dict[str, Dict[str, Any]] = {}  # сохраняем статус процесса анализа меню
-
+tasks_db: Dict[str, Dict[str, Any]] = {}
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
@@ -58,16 +55,15 @@ def run_menu(task_id: str, file_path: str, start: int, end: int) -> None:
     try:
         tasks_db[task_id]["status"] = "processing"
 
-        # парсинг pdf
-        analysis_prompt = get_product_analytics_prompt(file_path)
+        # Формируем промпт для парсинга PDF
+        analysis_prompt = get_product_analytics(file_path)
         if not analysis_prompt:
             raise Exception("Ошибка при извлечении текста из файла")
 
-        parsed_menu = call_gemini_api(analysis_prompt)
+        parsed_menu = get_json_from_gemini(analysis_prompt)
         if not parsed_menu:
             raise Exception("Нейросеть не смогла разобрать меню")
 
-        # eсли это не меню, сразу возвращаем ошибку
         if parsed_menu.get("error") == ERROR_NOT_A_MENU:
             tasks_db[task_id]["result"] = parsed_menu
             tasks_db[task_id]["status"] = "completed"
@@ -75,11 +71,22 @@ def run_menu(task_id: str, file_path: str, start: int, end: int) -> None:
 
         save_json_file(parsed_menu, MENU_RESULT_FILE)
 
-        # ищем подходящие фермерские продукты в базе данных
+        # Ищем фермерские продукты в базе
         recommendations = get_menu_recommendations(MENU_RESULT_FILE, start, end)
 
-        # получаем совет по обновлению меню
-        final_result = generate_expert_tips(recommendations)
+        # Генерируем советы 
+        real_dishes = [d["dish_name"] for d in parsed_menu.get("dishes", [])]
+
+        data_for_tips = {
+            "cuisine_type": parsed_menu.get("cuisine_type"),
+            "total_dishes": parsed_menu.get("total_dishes"),
+            "recommendations": recommendations,
+        }
+
+        final_result = generate_tips(
+            data_for_tips, menu_items_list=real_dishes, months=f"{start}-{end}"
+        )
+
         if not final_result:
             raise Exception("Ошибка при генерации финальных советов")
 
@@ -134,4 +141,3 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(app, host=SERVER_HOST, port=SERVER_PORT)
-
