@@ -15,23 +15,45 @@ export default function App() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [errorMsg, setErrorMsg] = useState(null);
 
-  // 1. Отправка PDF на бэкенд (Используем api.js)
+  // === НОВАЯ ФУНКЦИЯ ВАЛИДАЦИИ СЕЗОНА ===
+  const validateSeasonDuration = () => {
+    // Вычисляем длительность с учетом перехода через год
+    let duration = endMonth - startMonth;
+    if (duration < 0) {
+      duration += 12;
+    }
+    // Добавляем 1, потому что если выбран один и тот же месяц (например, Янв - Янв), 
+    // duration будет 0, но фактически выбран 1 месяц.
+    duration += 1;
+
+    if (duration > 3) {
+      setErrorMsg("Выбрано больше 3 месяцев. Пожалуйста, сократите период.");
+      return false;
+    }
+    return true;
+  };
+
+  // 1. Отправка PDF на бэкенд
   const handleAnalyzeMenu = async () => {
     if (!file) return;
-    setStep('loading');
+    
+    // Сначала очищаем старые ошибки
     setErrorMsg(null);
+
+    // === ПРОВЕРКА ДЛИТЕЛЬНОСТИ ПЕРЕД ОТПРАВКОЙ ===
+    if (!validateSeasonDuration()) {
+      return; // Прерываем выполнение, если период слишком большой
+    }
+
+    setStep('loading');
     setLoadingText('Отправляем меню на анализ...');
 
     try {
-      // Вызываем функцию из api.js
       const { task_id } = await ApiService.uploadMenuForAnalysis(file, startMonth, endMonth);
-
       setLoadingText('Нейросеть изучает меню и ищет фермеров...');
 
-      // Опрашиваем сервер каждую секунду
       const pollInterval = setInterval(async () => {
         try {
-          // Вызываем функцию проверки статуса из api.js
           const statusData = await ApiService.getTaskStatus(task_id);
 
           if (statusData.status === 'completed') {
@@ -56,14 +78,21 @@ export default function App() {
     }
   };
 
-  // 2. Получение базы сезонов без загрузки PDF (Используем api.js)
+  // 2. Получение базы сезонов
   const handleShowBase = async () => {
-    setStep('loading');
+    // Сначала очищаем старые ошибки
     setErrorMsg(null);
+
+    // === ПРОВЕРКА ДЛИТЕЛЬНОСТИ ПЕРЕД ОТПРАВКОЙ ===
+    if (!validateSeasonDuration()) {
+      return; // Прерываем выполнение, если период слишком большой
+    }
+
+    setStep('loading');
     setLoadingText('Загружаем сезонный календарь...');
 
+
     try {
-      // Вызываем функцию получения каталога из api.js
       const resultData = await ApiService.getSeasonalDashboard(startMonth, endMonth);
       
       setData({ products: resultData });
@@ -74,20 +103,17 @@ export default function App() {
     }
   };
 
-  // Фильтрация карточек на дашборде
   const filteredProducts = data?.products?.filter(p => {
     const matchTab = p.recommendation_type === activeTab;
     const matchStatus = filterStatus === 'all' || p.status === filterStatus;
     return matchTab && matchStatus;
   }) || [];
 
-
-  // Вспомогательная функция для красивых бейджей статуса
   const getStatusBadge = (status) => {
     switch (status) {
       case 'base': return <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-bold">🌿 Базовый</span>;
       case 'premium': return <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs font-bold">💎 Премиум</span>;
-      case 'rare': return <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs font-bold">⚡ Редкий</span>;
+      case 'rare': return <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs font-bold">⚡️ Редкий</span>;
       default: return null;
     }
   };
@@ -96,13 +122,12 @@ export default function App() {
     <div className="min-h-screen bg-cover bg-center relative">
       <div
         className="min-h-screen font-sans text-slate-800 pb-10 bg-cover bg-center"
-        style={{backgroundImage: "url('../images/start_image.jpg')"
-        }}
->
+        style={{backgroundImage: "url('../images/start_image.jpg')"}}
+      >
 
-  <div className="absolute inset-0 bg-white/70 backdrop-blur-sm"></div>
+      <div className="absolute inset-0 bg-white/70 backdrop-blur-sm"></div>
 
-  <div className="relative z-10">
+      <div className="relative z-10">
       {/* --- ЭКРАН 1: СТАРТ --- */}
       {step === 'start' && (
         <div className="max-w-3xl mx-auto pt-20 px-4">
@@ -111,8 +136,8 @@ export default function App() {
             <p className="text-slate-500 mb-8">Планируйте закупки и обновляйте меню заранее</p>
 
             {errorMsg && (
-              <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-lg text-left">
-                <strong>Ошибка:</strong> {errorMsg}
+              <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-lg text-left font-semibold border-l-4 border-red-500 animate-pulse">
+                ⚠️ {errorMsg}
               </div>
             )}
 
@@ -122,7 +147,10 @@ export default function App() {
                 <select 
                   className="w-full p-3 rounded-lg border border-slate-300 bg-white outline-none focus:border-brand-green"
                   value={startMonth}
-                  onChange={(e) => setStartMonth(Number(e.target.value))}
+                  onChange={(e) => {
+                    setStartMonth(Number(e.target.value));
+                    setErrorMsg(null); // Очищаем ошибку при изменении выбора
+                  }}
                 >
                   {MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
                 </select>
@@ -130,7 +158,10 @@ export default function App() {
                 <select 
                   className="w-full p-3 rounded-lg border border-slate-300 bg-white outline-none focus:border-brand-green"
                   value={endMonth}
-                  onChange={(e) => setEndMonth(Number(e.target.value))}
+                  onChange={(e) => {
+                    setEndMonth(Number(e.target.value));
+                    setErrorMsg(null); // Очищаем ошибку при изменении выбора
+                  }}
                 >
                   {MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
                 </select>
@@ -140,13 +171,16 @@ export default function App() {
 
             <div className="mb-8 text-left bg-brand-orange p-6 rounded-xl border border-slate-100">
               <label className="block font-semibold mb-4 text-lg">2. Загрузите текущее меню (PDF)</label>
-              <div className="border-2 border-dashed border-slate-300 rounded-xl p-10 text-center transition-colors cursor-pointer">
+              <div className="border-2 border-dashed border-slate-300 rounded-xl p-10 text-center transition-colors cursor-pointer hover:bg-white/50">
                 <input 
                   type="file" 
                   accept=".pdf" 
                   className="hidden" 
                   id="file-upload"
-                  onChange={(e) => setFile(e.target.files[0])}
+                  onChange={(e) => {
+                    setFile(e.target.files[0]);
+                    setErrorMsg(null); // Очищаем ошибку при выборе файла
+                  }}
                 />
                 <label htmlFor="file-upload" className="cursor-pointer flex flex-col items-center">
                   <span className="text-4xl mb-3">📄</span>
@@ -161,14 +195,14 @@ export default function App() {
               <button 
                 onClick={handleAnalyzeMenu}
                 disabled={!file}
-                className="flex-1 bg-brand-yellow hover:bg-brand-green text-white font-bold py-4 rounded-xl transition-all text-lg shadow-md"
+                className="flex-1 bg-brand-yellow hover:bg-brand-green text-white font-bold py-4 rounded-xl transition-all text-lg shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Проанализировать меню
               </button>
               
               <button 
                 onClick={handleShowBase}
-                className="flex-1 border-2 border-brand-yellow text-brand-yellow hover:bg-brand-orange font-bold py-4 rounded-xl disabled:opacity-50 transition-all text-lg"
+                className="flex-1 border-2 border-brand-yellow text-brand-yellow hover:bg-brand-orange font-bold py-4 rounded-xl transition-all text-lg"
               >
                 Показать сезонные продукты
               </button>
@@ -179,18 +213,18 @@ export default function App() {
       </div>
     </div>
 
-
       {/* --- ЭКРАН 2: ЗАГРУЗКА --- */}
       {step === 'loading' && (
-        <div className="h-screen flex flex-col items-center justify-center">
+        <div className="h-screen flex flex-col items-center justify-center relative z-20">
           <div className="w-16 h-16 border-4 border-green-200 border-t-brand-green rounded-full animate-spin mb-6"></div>
           <h2 className="text-2xl font-semibold animate-pulse text-slate-700">{loadingText}</h2>
         </div>
       )}
 
+
       {/* --- ЭКРАН 3: ДАШБОРД --- */}
       {step === 'dashboard' && data && (
-        <div>
+        <div className="relative z-20">
           <div className="sticky top-0 bg-white shadow-md z-50 p-4 border-b border-slate-200">
             <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
@@ -214,7 +248,7 @@ export default function App() {
               </select>
             </div>
             
-            <div className="max-w-6xl mx-auto mt-4 flex gap-4 overflow-x-auto">
+            <div className="max-w-6xl mx-auto mt-4 flex gap-4 overflow-x-auto bg-white/80 p-2 rounded-lg shadow-sm">
               <button 
                 onClick={() => setActiveTab('economy')}
                 className={`pb-2 px-1 font-semibold border-b-2 transition-colors whitespace-nowrap ${activeTab === 'economy' ? 'border-brand-green text-brand-green' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
@@ -245,7 +279,15 @@ export default function App() {
                   <div className="flex w-full h-6 mt-1 rounded overflow-hidden border border-slate-200 bg-slate-100">
                     {MONTHS.map((m, i) => {
                       const isSeason = product.season_months.includes(i + 1);
-                      const isSelected = i >= startMonth && i <= endMonth;
+                      
+                      // Проверяем, входит ли месяц в выбранный интервал, учитывая переход через год
+                      let isSelected = false;
+                      if (startMonth <= endMonth) {
+                          isSelected = i >= startMonth && i <= endMonth;
+                      } else {
+                          // Если переход через год (например, Ноя(10) - Фев(1))
+                          isSelected = i >= startMonth || i <= endMonth;
+                      }
                       
                       return (
                         <div 
@@ -294,19 +336,23 @@ export default function App() {
             ))}
             
             {filteredProducts.length === 0 && (
-              <div className="col-span-full flex flex-col items-center justify-center py-20 text-slate-500">
+              <div className="col-span-full flex flex-col items-center justify-center py-20 text-slate-800 bg-white/90 rounded-2xl shadow-sm mt-8">
                 <span className="text-4xl mb-4">🔍</span>
-                <p className="text-lg">По выбранным фильтрам продуктов не найдено.</p>
+                <p className="text-lg font-semibold">По выбранным фильтрам продуктов не найдено.</p>
               </div>
             )}
           </div>
           
           <div className="max-w-6xl mx-auto px-6 pb-10 flex justify-center">
              <button 
-                onClick={() => { setStep('start'); setFile(null); }}
-                className="text-slate-500 hover:text-brand-dark font-medium underline"
+                onClick={() => { 
+                  setStep('start'); 
+                  setFile(null); 
+                  setErrorMsg(null);
+                }}
+                className="text-slate-800 hover:text-brand-dark font-bold underline bg-white/80 px-4 py-2 rounded-lg"
              >
-               Вернуться к загрузке меню
+               Вернуться к началу
              </button>
           </div>
         </div>
