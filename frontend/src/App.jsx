@@ -10,7 +10,8 @@ export default function App() {
   const [file, setFile] = useState(null);
   const [loadingText, setLoadingText] = useState('Читаем ваше меню...');
   
-  const [data, setData] = useState(null);
+  const [step, setStep] = useState('start'); const [data, setData] = useState(null);
+
   const [activeTab, setActiveTab] = useState('economy');
   const [filterStatus, setFilterStatus] = useState('all');
   const [errorMsg, setErrorMsg] = useState(null);
@@ -109,15 +110,19 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-cover bg-center relative">
-      <div
-        className="min-h-screen font-sans text-slate-800 pb-10 bg-cover bg-center"
-        style={{backgroundImage: "url('../images/start_image.jpg')"}}
+    <div className="min-h-screen font-sans text-slate-800 relative">
+      
+      {/* --- ФОНОВАЯ КАРТИНКА (ФИКСИРОВАННАЯ И НА ЗАДНЕМ ПЛАНЕ) --- */}
+      <div 
+        className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: "url('../images/start_image.jpg')" }}
       >
+        {/* Полупрозрачный слой для читаемости */}
+        <div className="absolute inset-0 bg-white/70 backdrop-blur-sm"></div>
+      </div>
 
-      <div className="absolute inset-0 bg-white/70 backdrop-blur-sm"></div>
-
-      <div className="relative z-10">
+      {/* --- ОСНОВНОЙ КОНТЕНТ (ПОВЕРХ ФОНА) --- */}
+      <div className="relative z-10 pb-10">
       {/* --- ЭКРАН 1: СТАРТ --- */}
       {step === 'start' && (
         <div className="max-w-3xl mx-auto pt-20 px-4">
@@ -127,7 +132,7 @@ export default function App() {
 
             {errorMsg && (
               <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-lg text-left font-semibold border-l-4 border-red-500">
-                ⚠️ {errorMsg}
+                {errorMsg}
               </div>
             )}
 
@@ -200,8 +205,6 @@ export default function App() {
           </div>
         </div>
       )}
-      </div>
-    </div>
 
       {/* --- ЭКРАН 2: ЗАГРУЗКА --- */}
       {step === 'loading' && (
@@ -218,7 +221,7 @@ export default function App() {
           <div className="sticky top-0 bg-white shadow-md z-50 p-4 border-b border-slate-200">
             <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
-                <h2 className="text-xl font-bold">Рекомендации от Своё.Шеф</h2>
+                <h2 className="text-xl font-bold">Рекомендации для Вас</h2>
                 <div className="flex gap-3 mt-2 text-sm">
                   {getStatusBadge('base')}
                   {getStatusBadge('premium')}
@@ -226,15 +229,12 @@ export default function App() {
                 </div>
               </div>
               
-              <select 
-                className="p-2 border border-slate-300 rounded-lg outline-none focus:border-brand-green w-full sm:w-auto"
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-              >
-                <option value="all">Все статусы</option>
-                <option value="base">Только Базовые</option>
-                <option value="premium">Только Премиум</option>
-                <option value="rare">Только Редкие</option>
+              <select className="p-2 border border-slate-300 rounded-lg outline-none focus:border-brand-green w-full sm:w-auto" 
+              value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} >
+                <option value="all">Все продукты</option>
+                <option value="base">Базовые продукты</option>
+                <option value="premium">Премиум продукты</option>
+                <option value="rare">Редкие продукты</option>
               </select>
             </div>
             
@@ -243,13 +243,13 @@ export default function App() {
                 onClick={() => setActiveTab('economy')}
                 className={`pb-2 px-1 font-semibold border-b-2 transition-colors whitespace-nowrap ${activeTab === 'economy' ? 'border-brand-green text-brand-green' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
               >
-                Оптимизация фудкоста
+                Оптимизация закупочной стоимости
               </button>
               <button 
                 onClick={() => setActiveTab('inspiration')}
                 className={`pb-2 px-1 font-semibold border-b-2 transition-colors whitespace-nowrap ${activeTab === 'inspiration' ? 'border-brand-green text-brand-green' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
               >
-                Сезонные спешлы
+                Сезонные специальные предложения
               </button>
             </div>
           </div>
@@ -265,8 +265,8 @@ export default function App() {
 
 
                 <div className="mb-4">
-                  <span className="text-xs text-slate-500 uppercase font-semibold">Сезонность</span>
-                  <div className="flex w-full h-6 mt-1 rounded overflow-hidden border border-slate-200 bg-slate-100">
+                  <span className="text-xs text-slate-500 font-semibold">Сезонность</span>
+                  <div className="flex w-full h-6 mt-1 rounded overflow-hidden border border-slate-200 bg-brand-white">
                     {MONTHS.map((m, i) => {
                       const isSeason = product.season_months.includes(i + 1);
                       
@@ -285,7 +285,7 @@ export default function App() {
                           title={m}
                           className={`flex-1 flex items-center justify-center border-r border-white/50 text-[10px] font-bold
                             ${isSeason ? 'bg-brand-green text-white' : 'text-slate-400'}
-                            ${isSelected ? 'ring-2 ring-inset ring-brand-dark scale-110 z-10' : ''}
+                            ${isSelected ? 'ring-2 ring-inset ring-brand-darker scale-110 z-10' : ''}
                           `}
                         >
                           {m.charAt(0)}
@@ -303,7 +303,7 @@ export default function App() {
                       </div>
                     )}
                     {product.reason && (
-                      <p className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-100 flex-grow">
+                      <p className="text-12 text-slate-800 bg-brand-white p-3 flex-grow">
                         {product.reason}
                       </p>
                     )}
@@ -311,14 +311,13 @@ export default function App() {
                 )}
 
                 <div className="mt-auto pt-4 border-t border-slate-100">
-                  <div className="text-sm text-slate-500 mb-3">Фермер: <span className="font-semibold text-slate-700">{product.farmer_name}</span></div>
                   <a 
                     href={product.link}
                     target="_blank"
                     rel="noreferrer" 
-                    className="block w-full text-center bg-brand-dark hover:bg-slate-800 text-white font-medium py-3 rounded-xl transition-colors shadow-sm"
+                    className="block w-full text-center bg-brand-green hover:bg-brand-yellow/20 hover:text-yellow-800 text-white font-medium py-3 rounded-xl transition-colors shadow-sm"
                   >
-                    Перейти на Своё Родное
+                    Заказать у "{product.farmer_name}"
                   </a>
                 </div>
 
@@ -327,7 +326,7 @@ export default function App() {
             
             {filteredProducts.length === 0 && (
               <div className="col-span-full flex flex-col items-center justify-center py-20 text-slate-800 bg-white/90 rounded-2xl shadow-sm mt-8">
-                <span className="text-4xl mb-4">🔍</span>
+                <span className="text-4xl mb-4"></span>
                 <p className="text-lg font-semibold">По выбранным фильтрам продуктов не найдено.</p>
               </div>
             )}
@@ -347,7 +346,7 @@ export default function App() {
           </div>
         </div>
       )}
-
+      </div>
     </div>
   );
 }
