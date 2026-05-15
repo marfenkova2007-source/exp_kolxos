@@ -15,15 +15,11 @@ export default function App() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [errorMsg, setErrorMsg] = useState(null);
 
-  // === НОВАЯ ФУНКЦИЯ ВАЛИДАЦИИ СЕЗОНА ===
   const validateSeasonDuration = () => {
-    // Вычисляем длительность с учетом перехода через год
     let duration = endMonth - startMonth;
     if (duration < 0) {
       duration += 12;
     }
-    // Добавляем 1, потому что если выбран один и тот же месяц (например, Янв - Янв), 
-    // duration будет 0, но фактически выбран 1 месяц.
     duration += 1;
 
     if (duration > 3) {
@@ -33,16 +29,13 @@ export default function App() {
     return true;
   };
 
-  // 1. Отправка PDF на бэкенд
   const handleAnalyzeMenu = async () => {
     if (!file) return;
     
-    // Сначала очищаем старые ошибки
     setErrorMsg(null);
 
-    // === ПРОВЕРКА ДЛИТЕЛЬНОСТИ ПЕРЕД ОТПРАВКОЙ ===
     if (!validateSeasonDuration()) {
-      return; // Прерываем выполнение, если период слишком большой
+      return; 
     }
 
     setStep('loading');
@@ -78,14 +71,11 @@ export default function App() {
     }
   };
 
-  // 2. Получение базы сезонов
   const handleShowBase = async () => {
-    // Сначала очищаем старые ошибки
     setErrorMsg(null);
 
-    // === ПРОВЕРКА ДЛИТЕЛЬНОСТИ ПЕРЕД ОТПРАВКОЙ ===
     if (!validateSeasonDuration()) {
-      return; // Прерываем выполнение, если период слишком большой
+      return; 
     }
 
     setStep('loading');
@@ -136,7 +126,7 @@ export default function App() {
             <p className="text-slate-500 mb-8">Планируйте закупки и обновляйте меню заранее</p>
 
             {errorMsg && (
-              <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-lg text-left font-semibold border-l-4 border-red-500 animate-pulse">
+              <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-lg text-left font-semibold border-l-4 border-red-500">
                 ⚠️ {errorMsg}
               </div>
             )}
@@ -149,7 +139,7 @@ export default function App() {
                   value={startMonth}
                   onChange={(e) => {
                     setStartMonth(Number(e.target.value));
-                    setErrorMsg(null); // Очищаем ошибку при изменении выбора
+                    setErrorMsg(null); 
                   }}
                 >
                   {MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
@@ -160,7 +150,7 @@ export default function App() {
                   value={endMonth}
                   onChange={(e) => {
                     setEndMonth(Number(e.target.value));
-                    setErrorMsg(null); // Очищаем ошибку при изменении выбора
+                    setErrorMsg(null); 
                   }}
                 >
                   {MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
@@ -179,7 +169,7 @@ export default function App() {
                   id="file-upload"
                   onChange={(e) => {
                     setFile(e.target.files[0]);
-                    setErrorMsg(null); // Очищаем ошибку при выборе файла
+                    setErrorMsg(null); 
                   }}
                 />
                 <label htmlFor="file-upload" className="cursor-pointer flex flex-col items-center">
