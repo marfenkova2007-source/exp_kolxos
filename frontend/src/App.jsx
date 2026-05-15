@@ -112,16 +112,13 @@ export default function App() {
   return (
     <div className="min-h-screen font-sans text-slate-800 relative">
       
-      {/* --- ФОНОВАЯ КАРТИНКА (ФИКСИРОВАННАЯ И НА ЗАДНЕМ ПЛАНЕ) --- */}
       <div 
         className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: "url('../images/start_image.jpg')" }}
       >
-        {/* Полупрозрачный слой для читаемости */}
         <div className="absolute inset-0 bg-white/70 backdrop-blur-sm"></div>
       </div>
 
-      {/* --- ОСНОВНОЙ КОНТЕНТ (ПОВЕРХ ФОНА) --- */}
       <div className="relative z-10 pb-10">
       {/* --- ЭКРАН 1: СТАРТ --- */}
       {step === 'start' && (
@@ -270,12 +267,10 @@ export default function App() {
                     {MONTHS.map((m, i) => {
                       const isSeason = product.season_months.includes(i + 1);
                       
-                      // Проверяем, входит ли месяц в выбранный интервал, учитывая переход через год
                       let isSelected = false;
                       if (startMonth <= endMonth) {
                           isSelected = i >= startMonth && i <= endMonth;
                       } else {
-                          // Если переход через год (например, Ноя(10) - Фев(1))
                           isSelected = i >= startMonth || i <= endMonth;
                       }
                       
