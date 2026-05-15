@@ -22,7 +22,6 @@ RARE_THRESHOLD = 10  # Порог редкости для статуса 'rare'
 
 def get_general_recommendations(start_month: int, end_month: int, db_path: str = DEFAULT_DB_PATH) -> dict:
     """Генерирует топ-15 лучших сезонных предложений без привязки к конкретному меню. Используется для общего каталога вдохновения"""
-    target_months = _get_target_months(start_month, end_month)
     df = get_seasonal_df(start_month, end_month, db_path)
     
     if df.empty:
@@ -32,7 +31,7 @@ def get_general_recommendations(start_month: int, end_month: int, db_path: str =
         }
     df = _apply_inspiration_scoring(df)
     df = df.drop_duplicates(subset=['main_ingredient', 'shop_name']).head(GENERAL_REC_LIMIT)
-    result_list = _build_recommendation_cards(df, target_months)
+    result_list = _build_recommendation_cards(df)
     return {
         "selected_period": {"start_month": start_month, "end_month": end_month},
         "recommendations": result_list
@@ -40,7 +39,6 @@ def get_general_recommendations(start_month: int, end_month: int, db_path: str =
 
 def get_menu_recommendations(menu_json_path: str, start_month: int, end_month: int, db_path: str = DEFAULT_DB_PATH) -> dict:
     """Анализирует меню и возвращает 50 продуктов. 25 продуктов для экономии на текущем и 25 продуктов для новых идей"""
-    target_months = _get_target_months(start_month, end_month)
     ingredient_counts, total_dishes, cuisine_type = get_menu_stats(menu_json_path)
     
     df = get_seasonal_df(start_month, end_month, db_path)
@@ -70,7 +68,7 @@ def get_menu_recommendations(menu_json_path: str, start_month: int, end_month: i
         df_new = df_new.drop_duplicates(subset=['main_ingredient', 'shop_name']).head(INSPIRATION_LIMIT)
 
     final_df = pd.concat([df_economy, df_new])
-    result_list = _build_recommendation_cards(final_df, target_months)
+    result_list = _build_recommendation_cards(final_df)
         
     return {
         "cuisine_type": cuisine_type,
@@ -97,6 +95,12 @@ def get_menu_stats(menu_json_path: str) -> tuple[Counter, int, str]:
                 all_ingredients.append(main_ing)
     ingredient_counts = Counter(all_ingredients)
     return ingredient_counts, total_dishes, cuisine_type
+
+def _get_target_months(start_month: int, end_month: int) -> list[int]:
+    """Возвращает список месяцев, выбранных пользователем"""
+    if start_month <= end_month:
+        return list(range(start_month, end_month + 1))
+    return list(range(start_month, 13)) + list(range(1, end_month + 1))
 
 def get_seasonal_df(start_month: int, end_month: int, db_path: str = DEFAULT_DB_PATH) -> pd.DataFrame:
     """ Выгружает из БД все продукты, доступные хотя бы в один из месяцев  выбранного пользователем периода"""
@@ -126,7 +130,7 @@ def _apply_inspiration_scoring(df: pd.DataFrame) -> pd.DataFrame:
     df_scored['score'] = (df_scored['rarity_score'] * INSPIRATION_RARITY_WEIGHT) * premium_multiplier
     return df_scored.sort_values(by='score', ascending=False)
 
-def _build_recommendation_cards(df: pd.DataFrame, target_months: list[int]) -> list[dict]:
+def _build_recommendation_cards(df: pd.DataFrame) -> list[dict]:
     """Формирует стандартизированный список словарей"""
     result = []
     for row in df.to_dict('records'): 
@@ -139,18 +143,15 @@ def _build_recommendation_cards(df: pd.DataFrame, target_months: list[int]) -> l
             "link": row['url_product'],
             "status": _calculate_status(row),
             "novelty_score": round(row.get('novelty_score', BASE_NOVELTY_SCORE), 1),
-            "season_months": _extract_intersection_months(row, target_months),            
+            "season_months": _get_product_months(row),            
             "recommendation_type": reason_type,
             "reason": ""
         })
     return result
 
-def _get_target_months(start_month: int, end_month: int) -> list[int]:
-    """Отдает список порядковых номеров месяцев в выбранном диапазоне"""
-    if start_month <= end_month:
-        return list(range(start_month, end_month + 1))
-    else:
-        return list(range(start_month, 13)) + list(range(1, end_month + 1))
+def _get_product_months(row: dict) -> list[int]:
+    """Возвращает полный список месяцев, когда продукт доступен"""
+    return [m for m in range(1, 13) if row.get(f'month_{m}') == 1]
     
 def _calculate_status(row: dict) -> str:
     """Определяет категорию товара: base, rare или premium"""
@@ -161,10 +162,3 @@ def _calculate_status(row: dict) -> str:
     else:
         return "base"
     
-def _extract_intersection_months(row: dict, target_months: list[int]) -> list[int]:
-    """Находит общие месяцы между периодом доступности продукта и сезоном, который выбрал пользователь"""
-    product_months = [m for m in range(1, 13) if row[f'month_{m}'] == 1]
-    return [m for m in product_months if m in target_months]
-
-
-

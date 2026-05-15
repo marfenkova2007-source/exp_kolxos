@@ -6,9 +6,9 @@ from collections import Counter
 from business import (
     _apply_economy_scoring, 
     _apply_inspiration_scoring, 
-    _calculate_status, 
-    _extract_intersection_months, 
+    _calculate_status,  
     _get_target_months, 
+    _get_product_months,
     get_menu_stats, 
     get_seasonal_df, 
     get_general_recommendations, 
@@ -70,13 +70,16 @@ class TestRecommendationSystem(unittest.TestCase):
         self.assertEqual(_get_target_months(6, 8), [6, 7, 8])
         self.assertEqual(_get_target_months(11, 2), [11, 12, 1, 2])
 
-
-    def test_extract_intersection_months(self):
-        """Тестируем правильное извлечение ПЕРЕСЕЧЕНИЯ месяцев"""
+    def test_get_product_months(self):
         row = {f'month_{m}': (1 if m in [5, 6, 7] else 0) for m in range(1, 13)}
-        target_months = [6, 7, 8]
-        self.assertEqual(_extract_intersection_months(row, target_months), [6, 7])
-        self.assertEqual(_extract_intersection_months(row, [3, 4]), [])
+        self.assertEqual(_get_product_months(row), [5, 6, 7])
+        
+        row_empty = {f'month_{m}': 0 for m in range(1, 13)}
+        self.assertEqual(_get_product_months(row_empty), [])
+        
+        row_all = {f'month_{m}': 1 for m in range(1, 13)}
+        self.assertEqual(_get_product_months(row_all), list(range(1, 13)))
+    
 
     def test_get_menu_stats(self):
         """Тестируем, правильно ли читается JSON-файл от ML"""
