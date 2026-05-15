@@ -16,7 +16,7 @@ from business import get_menu_recommendations, get_general_recommendations
 UPLOAD_DIR = "temp_uploads"
 MENU_RESULT_FILE = "menu_result.json"
 MAX_SEASONAL_MONTHS = 3
-SERVER_HOST = "0.0.0.0"
+SERVER_HOST = "localhost"
 SERVER_PORT = 8000
 ERROR_NOT_A_MENU = "NOT_A_MENU"
 
@@ -74,7 +74,7 @@ def run_menu(task_id: str, file_path: str, start: int, end: int) -> None:
         # Ищем фермерские продукты в базе
         recommendations = get_menu_recommendations(MENU_RESULT_FILE, start, end)
 
-        # Генерируем советы 
+        # Генерируем советы
         real_dishes = [d["dish_name"] for d in parsed_menu.get("dishes", [])]
 
         data_for_tips = {
@@ -126,13 +126,10 @@ async def get_task_status(task_id: str) -> Dict[str, Any]:
 
 
 @app.get("/seasonal_dashboard")
-async def get_seasonal_dashboard(start_month: int, end_month: int) -> List[Any]:
-    duration = (end_month - start_month + 12) % 12
-    if duration >= MAX_SEASONAL_MONTHS:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Период анализа не может превышать {MAX_SEASONAL_MONTHS} месяца",
-        )
+async def get_seasonal_dashboard(start_month: int, end_month: int):
+    duration = (end_month - start_month + 12) % 12 + 1
+    if duration > MAX_SEASONAL_MONTHS:
+        raise HTTPException(status_code=400, detail=...)
 
     return get_general_recommendations(start_month, end_month)
 
