@@ -4,6 +4,7 @@ import { ApiService } from './api';
 const MONTHS = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
 
 export default function App() {
+  const [isAnalysisMode, setIsAnalysisMode] = useState(false);
   const [step, setStep] = useState('start');
   const [startMonth, setStartMonth] = useState(0);
   const [endMonth, setEndMonth] = useState(2);
@@ -48,6 +49,7 @@ export default function App() {
           const statusRes = await ApiService.getTaskStatus(currentTaskId);
 
           if (statusRes.status === 'completed') {
+            setIsAnalysisMode(true);
             clearInterval(pollInterval);
             const products = statusRes.result.recommendations || statusRes.result;
             setData({ products: Array.isArray(products) ? products : [] });
@@ -79,7 +81,8 @@ export default function App() {
 
     try {
       const resultData = await ApiService.getSeasonalDashboard(startMonth + 1, endMonth + 1);
-
+      setIsAnalysisMode(false);
+      setActiveTab('inspiration');
       const actualList = resultData.recommendations || resultData;
 
       setData({ products: Array.isArray(actualList) ? actualList : [] });
@@ -232,12 +235,15 @@ export default function App() {
               </div>
 
               <div className="max-w-6xl mx-auto mt-4 flex gap-4 overflow-x-auto bg-white/80 p-2 rounded-lg shadow-sm">
-                <button
-                  onClick={() => setActiveTab('economy')}
-                  className={`pb-2 px-1 font-semibold border-b-2 transition-colors whitespace-nowrap ${activeTab === 'economy' ? 'border-brand-green text-brand-green' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-                >
-                  Оптимизация закупочной стоимости
-                </button>
+                {isAnalysisMode && (
+                  <button
+                    onClick={() => setActiveTab('economy')}
+                    className={`pb-2 px-1 font-semibold border-b-2 transition-colors whitespace-nowrap ${activeTab === 'economy' ? 'border-brand-green text-brand-green' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                  >
+                    Оптимизация закупочной стоимости
+                  </button>
+                )}
+
                 <button
                   onClick={() => setActiveTab('inspiration')}
                   className={`pb-2 px-1 font-semibold border-b-2 transition-colors whitespace-nowrap ${activeTab === 'inspiration' ? 'border-brand-green text-brand-green' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
@@ -275,9 +281,9 @@ export default function App() {
                             key={i}
                             title={m}
                             className={`flex-1 flex items-center justify-center border-r border-white/50 text-[10px] font-bold
-                            ${isSeason ? 'bg-brand-green text-white' : 'text-slate-400'}
-                            ${isSelected ? 'ring-2 ring-inset ring-brand-darker scale-110 z-10' : ''}
-                          `}
+                            ${isSeason ? 'bg-brand-green text-white' : 'text-slate-400'}
+                            ${isSelected ? 'ring-2 ring-inset ring-brand-darker scale-110 z-10' : ''}
+                          `}
                           >
                             {m.charAt(0)}
                           </div>
@@ -288,7 +294,7 @@ export default function App() {
 
                   {(product.novelty_score !== undefined || product.reason) && (
                     <div className="mb-4 flex-grow flex flex-col gap-2">
-                      {product.novelty_score !== undefined && (
+                      {isAnalysisMode && product.novelty_score !== undefined && (
                         <div className="inline-flex items-center gap-1 bg-brand-yellow/20 text-yellow-800 w-fit px-2 py-1 rounded text-sm font-bold">
                           🔥 Новизна: {product.novelty_score}%
                         </div>
@@ -317,7 +323,6 @@ export default function App() {
 
               {filteredProducts.length === 0 && (
                 <div className="col-span-full flex flex-col items-center justify-center py-20 text-slate-800 bg-white/90 rounded-2xl shadow-sm mt-8">
-                  <span className="text-4xl mb-4"></span>
                   <p className="text-lg font-semibold">По выбранным фильтрам продуктов не найдено.</p>
                 </div>
               )}
@@ -341,4 +346,3 @@ export default function App() {
     </div>
   );
 }
-
