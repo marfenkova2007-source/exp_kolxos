@@ -62,6 +62,7 @@ def get_json_from_gemini(prompt: str, system_instruction: str = None):
         return None
 
 def get_product_analytics(pdf_path: str):
+    """Парсит PDF-меню и формирует структурированный промпт для первичного анализа блюд."""
     pages_data = extract_text_from_pdf(pdf_path)
     if not pages_data:
         return None
@@ -89,6 +90,7 @@ def get_product_analytics(pdf_path: str):
 
 
 def generate_tips(anya_data: dict, menu_items_list: list = None, months: str = "6-8"):
+    """Генерирует персональные советы на основе данных аналитика и состава меню."""
     cuisine = anya_data.get("cuisine_type", "Азербайджанская")
     total = anya_data.get("total_dishes", 0)
     menu_items_str = ", ".join(menu_items_list) if menu_items_list else "Данные отсутствуют"
