@@ -54,22 +54,27 @@
 ---
 
 ## Установка и запуск
+### 0. Системные требования
+Убедитесь, что на вашем компьютере установлены:
+* **Python** 3.10+
+* **Node.js** (скачать можно с официального сайта)
 
 ### 1. Подготовка Бэкенда
 В корневой папке проекта:
 ```bash
 # 1. Установка зависимостей Python
-pip install google-genai python-dotenv pdfplumber fastapi uvicorn pandas
-
-# 2. Настройка API Key (создайте файл .env)
-GOOGLE_API_KEY=ваш_ключ_из_AI_Studio
+pip install google-genai python-dotenv pdfplumber fastapi uvicorn pandas pythonmultipart
+# 2. Настройка API Key
+# Создать ключ можно на: https://aistudio.google.com/app/api-keys
+# Безопасный способ создания файла .env в правильной кодировке (UTF-8):
+python -c "open('.env', 'w', encoding='utf8').write('GOOGLE_API_KEY=ваш_ключ_из_AI_Studio\n')"
 ```
 ### 2. Запуск сервера
 Запустите сервер из терминала командой:
 ```bash: python main.py ``` 
 
 ### 3. Подготовка Фронтенда
-Перейдите в директорию `frontend`:
+Откройте новый терминал и перейдите в директорию `frontend`:
 ```bash
 cd frontend
 
